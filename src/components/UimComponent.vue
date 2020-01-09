@@ -1,23 +1,33 @@
 <template>
   <div class="uim">
-  <button v-if="!user" class="login-button">Login</button>
-  <div v-if="user" class="user">{{user.getDisplayName()}}</div>
+  <button class="uim-button" @click="toggleOverlay">
+    <span v-if="!user">Login</span>
+    <span v-if="user">{{user.name}}</span>
+  </button>
+  <div v-if="showOverlay" class="overlay" ref="overlay">
+    <div class="social-logins" v-if="!user">
+      <button class="login-button" v-for="socialProvider in uimApi.getSocialProviders()" :key="socialProvider" @click="socialLogin(socialProvider)">{{socialProvider}}</button>
+    </div>
+    <button v-if="user" class="logout-button" @click="logout">Logout</button>
+  </div>
   <div v-if="notification" class="notification">New Message: {{notification.msg}}</div>
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
-import { IAuthenticatedUser, setupUimApi } from '@uim/web-sdk';
+import { IAuthenticatedUser, IUimApi, setupUimApi } from '@uim/web-sdk';
 
 @Component
 export default class UimComponent extends Vue {
     notification: {msg: string; timer: number} | null = null;
-    user: IAuthenticatedUser | null = null;
+    user: {name: string} | null = null;
+    uimApi?: IUimApi;
+    showOverlay: boolean = false;
 
     async created() {
-        const uimApi = await setupUimApi()
-            // IMPORTANT!!! the "design" environment is used for testing - when you go to prod remove the .withEnvironment setting!
+        this.uimApi = await setupUimApi()
+        // IMPORTANT!!! the "design" environment is used for testing - when you go to prod remove the .withEnvironment setting!
             .withEnvironment('design')
             // IMPORTANT!!! the "design" and "production" environments will have different applicationIds
             .withApplicationId('55a61a30945dd21cec9f2001')
@@ -38,9 +48,37 @@ export default class UimComponent extends Vue {
             .withAutoRefresh(false)
             .initialize();
         try {
-            this.user = await uimApi.getAuthenticatedUser();
+            this.updateUser(await this.uimApi.getAuthenticatedUser());
         } catch (e) {
             console.log('no user logged in');
+        }
+    }
+
+    toggleOverlay() {
+        this.showOverlay = !this.showOverlay;
+    }
+
+    async socialLogin(socialMediaName: string) {
+        if (this.uimApi) {
+            this.updateUser(await this.uimApi.socialLogin(socialMediaName));
+            this.showOverlay = false;
+        }
+    }
+
+    async logout() {
+        if (this.uimApi) {
+            await this.uimApi.logout();
+            await this.updateUser(null);
+            this.showOverlay = false;
+        }
+    }
+
+    async updateUser(user: IAuthenticatedUser | null) {
+        if (user) {
+            const name = await user.getDisplayName();
+            this.user = { name };
+        } else {
+            this.user = null;
         }
     }
 
@@ -81,15 +119,46 @@ button:disabled:hover {
   font-weight: bold;
 }
 
-button.login-button {
-  color: #2c3e50;
+$backgroundColor: #ecf8f3;
+$strokeColor: #2c3e50;
+
+.uim {
+  display: inline;
+  position: relative;
+}
+
+button.uim-button {
+  color: $strokeColor;
   text-decoration: underline;
 }
 
-.popup {
+.overlay {
+  position: absolute;
+  top: 1.5em;
+  right: 0;
+  border: 1px solid grey;
+  background: $backgroundColor;
+  padding: 0.5rem;
+}
+
+.social-logins {
+  display: flex;
+  flex-direction: column;
+  align-content: stretch;
+}
+
+button.login-button,
+button.logout-button {
+  background: white;
+  margin-bottom: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid $strokeColor;
+}
+
+.notification {
   position: fixed;
-  bottom: 0;
+  top: 0;
   width: 100%;
-  background: honeydew;
+  background: $backgroundColor;
 }
 </style>
