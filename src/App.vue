@@ -2,11 +2,23 @@
   <div id="app">
     <div id="nav">
       <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
+      <router-link to="/about">About</router-link> |
+      <uim-component></uim-component>
     </div>
     <router-view/>
   </div>
 </template>
+
+<script lang="ts">
+import UimComponent from '@/components/UimComponent.vue';
+
+export default {
+    name: 'app',
+    components: {
+        UimComponent
+    }
+};
+</script>
 
 <style lang="scss">
 #app {
