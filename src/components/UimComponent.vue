@@ -1,6 +1,6 @@
 <template>
   <div class="uim">
-  <button class="uim-button" @click="toggleOverlay">
+  <button class="uim-button" @click="handleUimButtonClick">
     <span v-if="!user">Login</span>
     <span v-if="user">{{user.name}}</span>
   </button>
@@ -8,7 +8,10 @@
     <div class="social-logins" v-if="!user">
       <button class="login-button" v-for="socialProvider in uimApi.getSocialProviders()" :key="socialProvider" @click="socialLogin(socialProvider)">{{socialProvider}}</button>
     </div>
-    <button v-if="user" class="logout-button" @click="logout">Logout</button>
+    <div v-if="user">
+      <img v-if="user.image" class="avatar" :src="user.image" :alt="user.name + '\'s profile picture'">
+      <button class="logout-button" @click="logout">Logout</button>
+    </div>
   </div>
   <div v-if="notification" class="notification">New Message: {{notification.msg}}</div>
   </div>
@@ -21,7 +24,7 @@ import { IAuthenticatedUser, IUimApi, setupUimApi } from '@uim/web-sdk';
 @Component
 export default class UimComponent extends Vue {
     notification: {msg: string; timer: number} | null = null;
-    user: {name: string} | null = null;
+    user: {name: string, image?: string} | null = null;
     uimApi?: IUimApi;
     showOverlay: boolean = false;
 
@@ -54,6 +57,19 @@ export default class UimComponent extends Vue {
         }
     }
 
+    async handleUimButtonClick() {
+        if (!this.showOverlay && !this.user && this.uimApi) {
+            try {
+                this.updateUser(await this.uimApi.tryApplicationActivation());
+            } catch (e) {
+                console.log('application activation failed');
+                this.toggleOverlay();
+            }
+        } else {
+            this.toggleOverlay();
+        }
+    }
+
     toggleOverlay() {
         this.showOverlay = !this.showOverlay;
     }
@@ -76,7 +92,8 @@ export default class UimComponent extends Vue {
     async updateUser(user: IAuthenticatedUser | null) {
         if (user) {
             const name = await user.getDisplayName();
-            this.user = { name };
+            const image = await user.getAvatar();
+            this.user = { name, image };
         } else {
             this.user = null;
         }
@@ -153,6 +170,14 @@ button.logout-button {
   margin-bottom: 0.25rem;
   padding: 0.25rem;
   border: 1px solid $strokeColor;
+}
+
+.avatar {
+  $diameter: 80px;
+  width: $diameter;
+  height: $diameter;
+  border: 1px solid rgba($strokeColor, 50%);
+  border-radius: $diameter / 2;
 }
 
 .notification {
