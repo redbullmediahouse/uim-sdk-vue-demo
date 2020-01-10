@@ -1,5 +1,9 @@
 # vue-uim-sdk-example
 
+This examples shows the usage of the UIM Web SDK in a sample Vue app. The vue app was generated using [Vue CLI](https://github.com/vuejs/vue-cli).
+
+The whole UIM integration is encapsulated in one component: [UimComponent.vue](src/components/UimComponent.vue). If you want to integrated UIM into your Vue app, this could be a good starting point.
+
 ## Project setup
 ```
 npm install
