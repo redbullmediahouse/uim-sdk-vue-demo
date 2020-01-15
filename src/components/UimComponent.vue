@@ -1,19 +1,19 @@
 <template>
   <div class="uim">
   <button class="uim-button" @click="handleUimButtonClick">
-    <span v-if="!user">Login</span>
     <span v-if="user">{{user.name}}</span>
+    <span v-else>Login</span>
   </button>
-  <div v-if="showOverlay" class="overlay" ref="overlay">
-    <div class="social-logins" v-if="!user">
-      <button class="login-button" v-for="socialProvider in uimApi.getSocialProviders()" :key="socialProvider" @click="socialLogin(socialProvider)">{{socialProvider}}</button>
-    </div>
+  <div v-show="showOverlay" class="overlay" ref="overlay">
     <div v-if="user">
       <img v-if="user.image" class="avatar" :src="user.image" :alt="user.name + '\'s profile picture'">
       <button class="logout-button" @click="logout">Logout</button>
     </div>
+    <div class="social-logins" v-else>
+      <button class="login-button" v-for="socialProvider in socialProviders" :key="socialProvider" @click="socialLogin(socialProvider)">{{socialProvider}}</button>
+    </div>
   </div>
-  <div v-if="notification" class="notification">New Message: {{notification.msg}}</div>
+  <div v-show="notification" class="notification">New Message: {{notification && notification.msg}}</div>
   </div>
 </template>
 
@@ -25,8 +25,12 @@ import { IAuthenticatedUser, IUimApi, setupUimApi } from '@uim/web-sdk';
 export default class UimComponent extends Vue {
     notification: {msg: string; timer: number} | null = null;
     user: {name: string, image?: string} | null = null;
-    uimApi?: IUimApi;
+    uimApi: IUimApi | null = null;
     showOverlay: boolean = false;
+
+    get socialProviders() {
+        return this.uimApi ? this.uimApi.getSocialProviders() : [];
+    }
 
     async created() {
         this.uimApi = await setupUimApi()
@@ -183,6 +187,7 @@ button.logout-button {
 .notification {
   position: fixed;
   top: 0;
+  left: 0;
   width: 100%;
   background: $backgroundColor;
 }
